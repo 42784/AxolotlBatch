@@ -13,6 +13,7 @@ import github.axolotl.main.grammar.util.InitParser;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.file.Files;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static github.axolotl.main.GlobalVariable.requestValue;
@@ -24,6 +25,8 @@ import static github.axolotl.main.grammar.syntax.util.PolymorphismUtil.getFile;
  * @since 2025/2/6 12:12
  */
 public class MethodService {
+    //TODO [A] 通过反射 基于Variable的类型调用可用的成员方法（这需要大幅度修改代码结构）
+    //TODO [A] 修改代码结构，使用其他方式维护方法，避免变量传递的臃肿
     public static final String SetVariable = "$setVariable";
     public static final String UpdateVariable = "#";
     public static final String Foreach = "$Foreach";
@@ -46,6 +49,17 @@ public class MethodService {
         regSystemOutputMethod();//基本输出类
         regFileMethod();//文件相关
         regExecMethod();//命令操作相关
+        regSimpleMethod();//常用
+    }
+
+    private static void regSimpleMethod() {
+        registerMethod("GetTimeMillis", v -> System.currentTimeMillis());
+        registerMethod("GetTime", v -> System.currentTimeMillis() / 1000);
+        registerMethod("Date", v -> new Date());
+        registerMethod("DateFormat", v -> {
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+            return simpleDateFormat.format(new Date());
+        });
     }
 
     static DefaultExecutor defaultExecutor = new DefaultExecutor(getExecHome());
