@@ -1,7 +1,7 @@
 package github.axolotl.main;
 
 
-import github.axolotl.main.grammar.InitParser;
+import github.axolotl.main.grammar.util.InitParser;
 import lombok.SneakyThrows;
 import org.apache.commons.io.IOUtils;
 
@@ -21,6 +21,8 @@ public class Main {
 
         code = code.replace("\r\n", "\n");//Windows下的换行符处理
         InitParser.parse(code);
+
+        System.out.printf("%s %d","hello","123");
 
     }
 }

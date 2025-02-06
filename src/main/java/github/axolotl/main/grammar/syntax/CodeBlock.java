@@ -1,4 +1,4 @@
-package github.axolotl.main.grammar;
+package github.axolotl.main.grammar.syntax;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,14 +12,15 @@ import java.util.List;
  * @since 2025/2/6 1:02
  */
 //代码块也是一个语句
-@EqualsAndHashCode(callSuper = true)
 @Data
 @AllArgsConstructor
-public class CodeBlock extends Syntax {
+public class CodeBlock implements Syntax {
     private List<Syntax> syntaxes;//代码块内的语句
 
     @Override
-    public void execute() {
+    public Object execute() {
+        if (syntaxes == null) return null;
         syntaxes.forEach(Syntax::execute);
+        return null;
     }
 }

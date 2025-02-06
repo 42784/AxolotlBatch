@@ -1,4 +1,4 @@
-package github.axolotl.main.grammar;
+package github.axolotl.main.grammar.syntax;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,6 +12,5 @@ import lombok.Data;
 @AllArgsConstructor
 //一条待被识别执行的语句
 public class Sentence {
-    private SentenceType type;
     private String sentence;
 }

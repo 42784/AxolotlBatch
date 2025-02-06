@@ -1,6 +1,5 @@
 package github.axolotl.main;
 
-import github.axolotl.main.grammar.variable.Variable;
 
 import java.util.HashMap;
 
@@ -10,14 +9,14 @@ import java.util.HashMap;
  * @since 2025/2/6 1:42
  */
 public class GlobalVariable {
-    public static final HashMap<String, Variable<?>> variables = new HashMap<>();
+    public static final HashMap<String, Object> variables = new HashMap<>();
 
     //CRUD Variable
-    public static Variable<?> getVariable(String variableName) {
+    public static Object getVariable(String variableName) {
         return variables.get(variableName);
     }
 
-    public static void setVariable(String variableName, Variable<?> variable) {
+    public static void setVariable(String variableName, Object variable) {
         variables.put(variableName, variable);
     }
 
@@ -25,16 +24,32 @@ public class GlobalVariable {
         variables.remove(variableName);
     }
 
-    public static void addVariable(String variableName, Variable<?> variable) {
+    public static void addVariable(String variableName, Object variable) {
         variables.put(variableName, variable);
     }
 
     //getValue
     public static Object getValue(String variableName) {
-        return variables.get(variableName).getValue();
+        return variables.get(variableName);
     }
-    public static <T> T getValue(String variableName,Class<T> type) {
-        return type.cast(variables.get(variableName).getValue()) ;
+
+    public static <T> T getValue(String variableName, Class<T> type) {
+        return type.cast(variables.get(variableName));
+
+    }
+
+    public static Object requestValue(Object variableName) {
+        try {
+            String name = ((String) variableName).trim();
+            if (variables.containsKey(name))
+                return variables.get(name);
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    public static <T> T requestValue(Object variableName, Class<T> type) {
+        return type.cast(requestValue(variableName));
     }
 
 

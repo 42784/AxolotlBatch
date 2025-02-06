@@ -1,7 +1,9 @@
-package github.axolotl.main.grammar;
+package github.axolotl.main.grammar.util;
 
 import github.axolotl.main.GlobalVariable;
-import github.axolotl.main.grammar.variable.StringVariable;
+import github.axolotl.main.grammar.syntax.Syntax;
+import github.axolotl.main.grammar.syntax.Sentence;
+import github.axolotl.main.grammar.syntax.util.StatementAnalyzer;
 import lombok.Getter;
 
 import java.util.*;
@@ -14,22 +16,37 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 
 public class InitParser {
+    public static final String CodeBlockSymbol = "$CODE_BLOCK";
+    public static final String StringSymbol = "$Str";
     @Getter
-    private static final HashMap<String, List<Sentence>> codeblocks = new HashMap<>();
+    private static final HashMap<String, List<Sentence>> codeblocks_Sentence = new HashMap<>();//第一步 分句 句子
+    @Getter
+    private static final HashMap<String, List<Syntax>> codeblocks_Syntax = new HashMap<>();//第二步 转换 语句
 
     // 解析器主方法
     public static void parse(String code) {
         AtomicReference<String> reference = new AtomicReference<>(code);//为了引用传递 使得方法可以修改code
-        parseString(reference);
-        System.out.println("reference.get() = " + reference.get());
+        parseString(reference);//字符串处理
         System.out.println("==================================");
-        List<Sentence> list = parseCodeBlock(reference.get(), 0, "$C0B$");
-        System.out.println("list = " + list);
+
+        List<Sentence> list = parseCodeBlock(reference.get(), 0, CodeBlockSymbol + 0);//代码块解析
+
+        list.stream().map(Sentence::getSentence).forEach(s -> System.out.printf("Run: %s\n", s));
         System.out.println("==================================");
-        codeblocks.forEach((k, v) -> {
+
+        /*codeblocks_Sentence.forEach((k, v) -> {
             System.out.println(k + " = " + v.toString().replace("\n", " "));
-        });
+        });*/
+
+
         System.out.println("==================================");
+        codeblocks_Sentence.forEach((key, value) -> {
+            codeblocks_Syntax.put(key, StatementAnalyzer.analyze(value));
+        });//句法转换
+        System.out.println("================Output================");
+//        System.out.println("codeblocks_Sentence = " + codeblocks_Sentence);
+//        System.out.println("codeblocks_Syntax = " + codeblocks_Syntax);
+        codeblocks_Syntax.get(CodeBlockSymbol + 0).forEach(Syntax::execute);//执行主方法每一句
 
 
     }
@@ -48,15 +65,15 @@ public class InitParser {
         ArrayList<Sentence> sentences = new ArrayList<>();//本代码块的语句
         StringBuilder outputCode = new StringBuilder();//处理代码块逻辑后的代码
         char[] chars = code.toCharArray();
-        int length = 0;//outputCode的长度
         int deepCnt = 0;//进入的层级
         for (int i = start; i < chars.length; i++) {
             char aChar = chars[i];
 
             if (aChar == '{') {
                 if (deepCnt == 0) {
-                    sentences.add(new Sentence(SentenceType.CodeBlock, "$C" + cnt + "B$"));
-                    parseCodeBlock(code, i + 1, "$C" + cnt++ + "B$");
+//                    sentences.add(new Sentence( "$C" + cnt + "B$"));
+                    outputCode.append(CodeBlockSymbol + cnt);
+                    parseCodeBlock(code, i + 1, CodeBlockSymbol + cnt++);
 //                    cnt++;
                 }
 
@@ -68,10 +85,7 @@ public class InitParser {
                 //找到闭合括号 处理前括号
                 deepCnt--;
                 if (deepCnt < 0) {
-//                break;//结束本代码块分析
-                    codeblocks.put(id,
-                            sentences
-                    );
+
                     break;
                 }
                 continue;
@@ -79,21 +93,18 @@ public class InitParser {
 
             if (deepCnt == 0) {
                 outputCode.append(aChar);
-                length++;
-            }
-            if (length == 1 && aChar == ';') {//行首的分号不要
-                outputCode = new StringBuilder();
-                length = 0;
             }
             if (aChar == ';' && deepCnt == 0) {
-                if (outputCode.toString().replace(" ", "").replace("\n", "").length() == 1)
+                if (outputCode.toString().replace(" ", "").replace("\n", "").length() <= 1)//无效的行
                     continue;//只有一个分号
-                sentences.add(new Sentence(SentenceType.Sentence, outputCode.toString()));
+                sentences.add(new Sentence(outputCode.toString().replace("\n", "")));
                 outputCode = new StringBuilder();
-                length = 0;
             }
 
         }
+        codeblocks_Sentence.put(id,
+                sentences
+        );
         return sentences;
 
 
@@ -125,14 +136,13 @@ public class InitParser {
 
         for (int i = 0; i < strings.size(); i++) {
             String stringVar = strings.get(i);
-            String varName = "$Str" + i;
+            String varName = StringSymbol + i;
             code = code.replace("\"%s\"".formatted(stringVar), varName);
             //TODO [C] 添加转义字符的支持
-            GlobalVariable.addVariable(varName, new StringVariable(stringVar));//添加全局变量
+            GlobalVariable.addVariable(varName,stringVar);//添加全局变量
         }
         reference.set(code);//设置替换后的代码
     }
-
 
 
 }
