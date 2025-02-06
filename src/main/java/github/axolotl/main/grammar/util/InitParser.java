@@ -135,11 +135,20 @@ public class InitParser {
         }
 
         for (int i = 0; i < strings.size(); i++) {
-            String stringVar = strings.get(i);
             String varName = StringSymbol + i;
-            code = code.replace("\"%s\"".formatted(stringVar), varName);
-            //TODO [C] 添加转义字符的支持
-            GlobalVariable.addVariable(varName,stringVar);//添加全局变量
+            String stringVar = strings.get(i);
+            code = code.replace("\"%s\"".formatted(stringVar), varName);//先替换源码
+
+            //随后执行转义
+            stringVar = stringVar
+                    .replace("#t", "\t")
+                    .replace("#n", "\n")
+                    .replace("#r", "\r")
+                    .replace("#b", "\b")
+                    .replace("#f", "\f")
+                    .replace("#1", "\"")
+            ;
+            GlobalVariable.addVariable(varName, stringVar);//添加全局变量
         }
         reference.set(code);//设置替换后的代码
     }
