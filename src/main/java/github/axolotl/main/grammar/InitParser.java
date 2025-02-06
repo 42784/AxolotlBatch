@@ -2,6 +2,7 @@ package github.axolotl.main.grammar;
 
 import github.axolotl.main.GlobalVariable;
 import github.axolotl.main.grammar.variable.StringVariable;
+import lombok.Getter;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -13,7 +14,8 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 
 public class InitParser {
-
+    @Getter
+    private static final HashMap<String, List<Sentence>> codeblocks = new HashMap<>();
 
     // 解析器主方法
     public static void parse(String code) {
@@ -21,8 +23,78 @@ public class InitParser {
         parseString(reference);
         System.out.println("reference.get() = " + reference.get());
         System.out.println("==================================");
-//        parseCodeBlock(optional);
+        List<Sentence> list = parseCodeBlock(reference.get(), 0, "$C0B$");
+        System.out.println("list = " + list);
         System.out.println("==================================");
+        codeblocks.forEach((k, v) -> {
+            System.out.println(k + " = " + v.toString().replace("\n", " "));
+        });
+        System.out.println("==================================");
+
+
+    }
+
+    static int cnt = 1;
+
+    /**
+     * 解析代码块
+     *
+     * @param code  代码
+     * @param start 起始的位置
+     * @param id    这一段解析代码的id
+     * @return 一句一句代码
+     */
+    private static List<Sentence> parseCodeBlock(String code, int start, String id) {
+        ArrayList<Sentence> sentences = new ArrayList<>();//本代码块的语句
+        StringBuilder outputCode = new StringBuilder();//处理代码块逻辑后的代码
+        char[] chars = code.toCharArray();
+        int length = 0;//outputCode的长度
+        int deepCnt = 0;//进入的层级
+        for (int i = start; i < chars.length; i++) {
+            char aChar = chars[i];
+
+            if (aChar == '{') {
+                if (deepCnt == 0) {
+                    sentences.add(new Sentence(SentenceType.CodeBlock, "$C" + cnt + "B$"));
+                    parseCodeBlock(code, i + 1, "$C" + cnt++ + "B$");
+//                    cnt++;
+                }
+
+                deepCnt++;
+                continue;
+            }
+
+            if (aChar == '}') {
+                //找到闭合括号 处理前括号
+                deepCnt--;
+                if (deepCnt < 0) {
+//                break;//结束本代码块分析
+                    codeblocks.put(id,
+                            sentences
+                    );
+                    break;
+                }
+                continue;
+            }
+
+            if (deepCnt == 0) {
+                outputCode.append(aChar);
+                length++;
+            }
+            if (length == 1 && aChar == ';') {//行首的分号不要
+                outputCode = new StringBuilder();
+                length = 0;
+            }
+            if (aChar == ';' && deepCnt == 0) {
+                if (outputCode.toString().replace(" ", "").replace("\n", "").length() == 1)
+                    continue;//只有一个分号
+                sentences.add(new Sentence(SentenceType.Sentence, outputCode.toString()));
+                outputCode = new StringBuilder();
+                length = 0;
+            }
+
+        }
+        return sentences;
 
 
     }
@@ -35,7 +107,7 @@ public class InitParser {
         char[] chars = code.toCharArray();
         List<String> strings = new ArrayList<>();
         boolean flag = false;
-        int start = -1;//前引号
+        int start = -1;//前引号+1(字符串开端)
         int length = chars.length;//数组长
         for (int i = 0; i < length; i++) {
             char aChar = chars[i];
@@ -61,108 +133,6 @@ public class InitParser {
         reference.set(code);//设置替换后的代码
     }
 
-    /**
-     * 解析代码块
-     * 优先解析最最小字串的
-     */
-    //FIXME 希望返回最小代码块，然后替换处理的 但是失败了，稍后做
-    private static void parseCodeBlock(String code) {
-        int[][] pairs = findPairs(code, '{', '}');
-        for (int i = 0; i < pairs.length; i++) {
-            int[] pair = pairs[i];
-            char[] chars = code.toCharArray();
-//            System.out.printf("[%d,%d]:%c,%c\n", pair[0], pair[1], chars[pair[0]], chars[pair[1]]);
-            System.out.printf("[%d][%d,%d,%d]: %s\n", i, pair[0], pair[1], pair[2],
-                    new String(
-                            Arrays.copyOfRange(chars, pair[0], pair[1] + 1)
-                    ).replace("\n", " ").replace("  ", " "), ""
-            );
-            if (pair[2] > 0) {
-                int cnt = pair[2];
-                for (int j = 0; j < cnt; j++) {
-                    System.out.printf("%d ", pair[3 + j]);
-                }
-                System.out.println();
-            }
-
-        }
-    }
-
-    public static int[][] findPairs(String input, char openChar, char closeChar) {
-        List<int[]> pairs = new ArrayList<>();
-        Stack<Integer> stack = new Stack<>();
-
-        // 第一步：找到所有括号对
-        for (int i = 0; i < input.length(); i++) {
-            char currentChar = input.charAt(i);
-
-            if (currentChar == openChar) {
-                stack.push(i);
-            } else if (currentChar == closeChar) {
-                if (!stack.isEmpty()) {
-                    int openIndex = stack.pop();
-
-                    pairs.add(new int[]{openIndex, i, 0}); // 初始化第三个元素为 0
-                }
-            }
-        }
-
-        // 第二步：处理嵌套逻辑，统计子代码块数量并记录子代码块的索引
-        for (int i = 0; i < pairs.size(); i++) {
-            int[] currentPair = pairs.get(i);
-            int start = currentPair[0];
-            int end = currentPair[1];
-            int childCount = 0;
-            List<Integer> childIndices = new ArrayList<>();
-
-            // 遍历所有括号对，寻找嵌套在当前括号对中的子代码块
-            for (int j = 0; j < pairs.size(); j++) {
-                if (i == j) continue; // 跳过自身
-
-                int[] childPair = pairs.get(j);
-                int childStart = childPair[0];
-                int childEnd = childPair[1];
-
-                // 检查当前子代码块是否被包含在当前括号对中
-                if (start < childStart && childEnd < end) {
-                    childCount++;
-                    childIndices.add(j); // 记录子代码块的索引
-                }
-            }
-
-            // 更新当前括号对的子代码块数量和子代码块索引
-            currentPair[2] = childCount; // 第三个维度存储子代码块数量
-            if (childCount > 0) {
-                // 创建一个新的数组来存储完整的括号对信息
-                int[] expandedPair = new int[3 + childCount];
-                for (int k = 0; k < 3; k++) {
-                    expandedPair[k] = currentPair[k];//复制currentPair前3项
-                }
-
-                // 将子代码块索引依次存入从 index[3] 开始的位置
-                for (int k = 0; k < childIndices.size(); k++) {
-                    expandedPair[3 + k] = childIndices.get(k);
-                }
-
-                pairs.set(i, expandedPair);
-            }
-        }
-
-        // 将结果转换为二维数组
-        int[][] result = new int[pairs.size()][];
-        for (int i = 0; i < pairs.size(); i++) {
-            result[i] = pairs.get(i);
-        }
-
-        for (int i = pairs.size(); i > 0; i--) {
-            int cnt = result[i][3];
-            for (int j = cnt; j > 0; j--) {
-
-            }
-        }
-
-        return result;
-    }
 
 
 }
