@@ -4,6 +4,7 @@ import github.axolotl.main.grammar.syntax.util.MethodEntity;
 import github.axolotl.main.grammar.syntax.util.MethodService;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.SneakyThrows;
 
 import java.util.Arrays;
 
@@ -26,6 +27,7 @@ public class Method implements Syntax {
     }
 
     @Override
+    @SneakyThrows
     public Object execute() {
         Object[] value = method.requestValue(parameters);//注意要请求一下参数
 //        System.out.println(methodName + ": parameters = " + Arrays.toString(parameters));

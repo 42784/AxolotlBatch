@@ -35,7 +35,7 @@ public class StatementAnalyzer {
             String[] split = text.split("=");
             int len = split.length;
             for (int i = 0; i < len - 1; i++) {
-                syntaxes.add(new Method(MethodService.SetVariable, new Object[]{split[i].trim(), split[len - 1]}));
+                syntaxes.add(new Method(MethodService.SetVariable, new Object[]{split[i].trim(), split[len - 1],"^"+split[i].trim()}));//需要原名字 否则传入会变成当前值
             }
             return syntaxes;//赋值直接返回 执行函数在赋值里面执行
         }
@@ -67,8 +67,8 @@ public class StatementAnalyzer {
         int end = text.indexOf(")");
         String methodName = text.substring(0, start);
         String params = text.substring(start + 1, end);
-        System.out.println("methodName = " + methodName);
-        System.out.println("params = " + params);
+//        System.out.println("methodName = " + methodName);
+//        System.out.println("params = " + params);
         Object[] variables = Arrays.stream(params.split(","))
                 .toArray(Object[]::new);
 

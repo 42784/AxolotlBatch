@@ -26,6 +26,9 @@ public class InitParser {
     // 解析器主方法
     public static void parse(String code) {
         AtomicReference<String> reference = new AtomicReference<>(code);//为了引用传递 使得方法可以修改code
+        System.out.println("==================================");
+        parseNote(reference);//注释处理
+        System.out.println("==================================");
         parseString(reference);//字符串处理
         System.out.println("==================================");
 
@@ -41,12 +44,46 @@ public class InitParser {
 
         System.out.println("==================================");
         codeblocks_Sentence.forEach((key, value) -> {
+            value.forEach(s -> {
+                String sentence = s.getSentence();
+                if (sentence.trim().startsWith("~")) {
+                    //语法糖 ~a -> a=#(a);
+                    String varName = sentence.split("~")[1];
+                    s.setSentence("%s = #(%s);".formatted(varName, varName));
+                }
+            });
             codeblocks_Syntax.put(key, StatementAnalyzer.analyze(value));
         });//句法转换
-        System.out.println("================Output================");
+        System.out.println("==================Output==================");
 //        System.out.println("codeblocks_Sentence = " + codeblocks_Sentence);
 //        System.out.println("codeblocks_Syntax = " + codeblocks_Syntax);
         codeblocks_Syntax.get(CodeBlockSymbol + 0).forEach(Syntax::execute);//执行主方法每一句
+
+
+    }
+
+    /**
+     * 剔除//注释后的内容
+     */
+    private static void parseNote(AtomicReference<String> reference) {
+        String code = reference.get();
+        char[] chars = code.toCharArray();
+        StringBuilder sb = new StringBuilder();
+
+        boolean inComment = false;
+        for (int i = 0; i < chars.length; i++) {
+            if (i < chars.length - 1 && chars[i] == '/' && chars[i + 1] == '/') {
+                inComment = true;
+                i++;//下一个是/ 不用管
+            } else if (chars[i] == '\n' && inComment) {
+                inComment = false;
+                sb.append(chars[i]); //下一行了，允许添加
+            } else if (!inComment) {
+                sb.append(chars[i]);
+            }
+        }
+
+        reference.set(sb.toString());
 
 
     }

@@ -2,6 +2,12 @@ package github.axolotl.main.grammar.syntax.util;
 
 
 import github.axolotl.main.GlobalVariable;
+import lombok.SneakyThrows;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+
+import static github.axolotl.main.grammar.syntax.util.PolymorphismUtil.convertArg;
 
 /**
  * @author AxolotlXM
@@ -18,5 +24,7 @@ public interface MethodEntity {
         return args;
     }
 
-    Object execute(Object[] args);
+
+    @SneakyThrows
+    Object execute(Object[] args) throws Exception;
 }
