@@ -14,19 +14,19 @@ import java.util.*;
  */
 //语句分析器
 public class StatementAnalyzer {
+
+    private static final HashMap<String, List<Syntax>> codeblocksSyntax = InitParser.getCodeblocks_Syntax();
     /**
      * 解析语句
      *
      * @param sentence 语句
      * @return 可执行的语法
      */
-    private static final HashMap<String, List<Syntax>> codeblocksSyntax = InitParser.getCodeblocks_Syntax();
-
     public static List<Syntax> analyze(Sentence sentence) {
         ArrayList<Syntax> syntaxes = new ArrayList<>();
 
         String text = sentence.getSentence();
-        text = text.replace(";","").trim();//去除前后空格
+        text = text.replace(";", "").trim();//去除前后空格
 
         if (text.startsWith(InitParser.CodeBlockSymbol)) {
             syntaxes.addAll(codeblocksSyntax.get(text));
@@ -35,7 +35,7 @@ public class StatementAnalyzer {
             String[] split = text.split("=");
             int len = split.length;
             for (int i = 0; i < len - 1; i++) {
-                syntaxes.add(new Method(MethodService.SetVariable, new Object[]{split[i].trim(), split[len - 1],"^"+split[i].trim()}));//需要原名字 否则传入会变成当前值
+                syntaxes.add(new Method(MethodService.SetVariable, new Object[]{split[i].trim(), split[len - 1], "^" + split[i].trim()}));//需要原名字 否则传入会变成当前值
             }
             return syntaxes;//赋值直接返回 执行函数在赋值里面执行
         }
@@ -44,12 +44,12 @@ public class StatementAnalyzer {
         if (text.contains("->")) {//Foreach
             String[] split = text.split("->");
             syntaxes.add(new Method(MethodService.Foreach,
-                    new Object[]{split[0].trim(), split[1].trim(),"#"+split[0].trim()}));
+                    new Object[]{split[0].trim(), split[1].trim(),"^"+split[0].trim()}));//为了保留原名字
         }
 
 
         if (text.contains("(") && text.contains(")")) {//不支持方法嵌套
-            syntaxes.add(tryGetMethod(text));
+            syntaxes.add(tryGetMethod(text.trim()));
         }
 
         return syntaxes;

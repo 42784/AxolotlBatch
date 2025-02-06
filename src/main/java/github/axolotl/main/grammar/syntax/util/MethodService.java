@@ -5,6 +5,7 @@ import dczx.axolotl.command.DefaultExecutor;
 import dczx.axolotl.util.FileUtil;
 import github.axolotl.main.GlobalVariable;
 import github.axolotl.main.grammar.syntax.Method;
+import github.axolotl.main.grammar.syntax.Sentence;
 import github.axolotl.main.grammar.syntax.Syntax;
 import github.axolotl.main.grammar.util.InitParser;
 
@@ -128,7 +129,7 @@ public class MethodService {
         registerMethod(SetVariable, v -> {
             Object var = v[1];
             try {//字面量和函数返回值的处理
-                String name = ((String) var).trim();
+                String name = var.toString().trim();
                 if (name.startsWith(InitParser.StringSymbol)) {
                     var = requestValue(name);
                 }
@@ -144,8 +145,8 @@ public class MethodService {
         });
         registerMethod(StringAppend, v -> {
             StringBuilder builder = new StringBuilder();
-            for (int i = 0; i < v.length; i++) {
-                builder.append(v[i]);
+            for (Object o : v) {
+                builder.append(o);
             }
             return builder.toString();
         });
@@ -155,41 +156,49 @@ public class MethodService {
         });
         registerMethod(Foreach, inputVar -> {
             String codeBlockName = (String) inputVar[1];
-            List<Syntax> syntaxes = InitParser.getCodeblocks_Syntax().get(codeBlockName);//获取Foreach体
 
-            String varName = ((String) inputVar[2]).replace("#", "");
+            String varName = ((String) inputVar[2]).replace("^", "");
             Object var = requestValue(varName);
             List<String> tempVarList = new ArrayList<>();//Foreach中的临时变量
-            switch (inputVar[0]) {//已被转换为Var对象
+
+            List<Sentence> sentences = InitParser.getCodeblocks_Sentence().get(codeBlockName);
+            //由于未知原因 直接运行代码块的内容有问题 所以只好重新解析然后运行
+            switch (var) {//已被转换为Var对象
                 case Object[] objects -> {
                     for (Object object : objects) {
                         addTempSubField("#" + varName, object, tempVarList);
-                        syntaxes.forEach(Syntax::execute);//运行一次循环体
+                        analyseAndRun(sentences);//解析并运行一次循环体
                     }
                 }
                 case Map<?, ?> map -> {
                     map.forEach((k, v) -> {
                         addTempSubField("#k", k, tempVarList);
                         addTempSubField("#v", v, tempVarList);
-                        syntaxes.forEach(Syntax::execute);//运行一次循环体
+                        analyseAndRun(sentences);//解析并运行一次循环体
                     });
                 }
                 case Collection<?> collection -> {
                     collection.forEach(object -> {
-                        requestValue(inputVar);
                         addTempSubField("#" + varName, object, tempVarList);
-                        syntaxes.forEach(Syntax::execute);//运行一次循环体
+                        analyseAndRun(sentences);//解析并运行一次循环体
                     });
                 }
                 default -> {
                     addTempSubField("#" + varName, var, tempVarList);
-                    syntaxes.forEach(Syntax::execute);//运行一次循环体
+                    analyseAndRun(sentences);//解析并运行一次循环体
                 }
             }
 
 
             tempVarList.forEach(GlobalVariable::removeVariable);//清空临时变量
             return null;
+        });
+    }
+
+    private static void analyseAndRun(List<Sentence> sentences) {
+        sentences.forEach(v -> {
+            List<Syntax> analyze = StatementAnalyzer.analyze(v);
+            analyze.forEach(Syntax::execute);
         });
     }
 

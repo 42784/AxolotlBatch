@@ -26,14 +26,11 @@ public class InitParser {
     // 解析器主方法
     public static void parse(String code) {
         AtomicReference<String> reference = new AtomicReference<>(code);//为了引用传递 使得方法可以修改code
-        System.out.println("==================================");
         parseNote(reference);//注释处理
-        System.out.println("==================================");
         parseString(reference);//字符串处理
-        System.out.println("==================================");
-
         List<Sentence> list = parseCodeBlock(reference.get(), 0, CodeBlockSymbol + 0);//代码块解析
 
+        System.out.println("==================================");
         list.stream().map(Sentence::getSentence).forEach(s -> System.out.printf("Run: %s\n", s));
         System.out.println("==================================");
 
@@ -42,7 +39,6 @@ public class InitParser {
         });*/
 
 
-        System.out.println("==================================");
         codeblocks_Sentence.forEach((key, value) -> {
             value.forEach(s -> {
                 String sentence = s.getSentence();

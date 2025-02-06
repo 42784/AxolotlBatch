@@ -39,13 +39,8 @@ public class GlobalVariable {
     }
 
     public static Object requestValue(Object variableName) {
-        try {
-            String name = ((String) variableName).trim();
-            if (variables.containsKey(name))
-                return variables.get(name);
-        } catch (Exception ignored) {
-        }
-        return null;
+        String name = variableName.toString().trim();
+        return variables.getOrDefault(name, null);
     }
 
     public static <T> T requestValue(Object variableName, Class<T> type) {
@@ -55,9 +50,10 @@ public class GlobalVariable {
 
     public static final String EXEC_PREFIX = "EXEC_PREFIX";
     public static final String EXEC_HOME = "EXEC_HOME";
+
     public static void initDefaultVariable() {
 //        addVariable(EXEC_PREFIX,"cmd /c ");
-        addVariable(EXEC_PREFIX,"");
-        addVariable(EXEC_HOME,"./");
+        addVariable(EXEC_PREFIX, "");
+        addVariable(EXEC_HOME, "./");
     }
 }
