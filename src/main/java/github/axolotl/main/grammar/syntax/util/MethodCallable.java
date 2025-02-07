@@ -21,7 +21,7 @@ public class MethodCallable {
         Object[] variables = new Object[parametersName.length];
         for (int i = 0; i < parametersName.length; i++) {
             parametersName[i] = parametersName[i].trim();
-            Object requestValue = StatementAnalyzer.requestValueForSyntax(parametersName[i]);
+            Object requestValue = StatementAnalyzer.requestValueForSyntax(parametersName[i],false);
             variables[i] = requestValue;
 //            System.out.printf("Request: %s -> %s\n", parametersName[i], requestValue);
         }

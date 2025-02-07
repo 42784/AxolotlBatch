@@ -7,6 +7,8 @@ import lombok.Getter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static github.axolotl.main.grammar.util.LogUtil.log;
+
 /**
  * @author AxolotlXM
  * @version 1.0
@@ -29,7 +31,7 @@ public class InitParser {
 
         System.out.println("==================Output==================");
         mainCodes.forEach(sentence -> {
-            System.out.printf("\u001B[32m[InitParser]Run: %s\u001B[0m\n", sentence);
+            log("[InitParser]执行语句: %s", sentence);
             //由全部解析，修改为动态的解析执行
             StatementAnalyzer.analyzeAndRun(sentence);//执行主方法每一句
         });

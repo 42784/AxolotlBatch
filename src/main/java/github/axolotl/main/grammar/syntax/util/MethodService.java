@@ -15,6 +15,7 @@ import java.util.*;
 
 import static github.axolotl.main.GlobalVariable.requestValue;
 import static github.axolotl.main.grammar.syntax.util.PolymorphismUtil.getFile;
+import static github.axolotl.main.grammar.util.LogUtil.log;
 
 /**
  * @author AxolotlXM
@@ -25,8 +26,8 @@ public class MethodService {
     //TODO [A] 通过反射 基于Variable的类型调用可用的成员方法（这需要大幅度修改代码结构）
     //TODO [A] 修改代码结构，使用其他方式维护方法，避免变量传递的臃肿
     public static final String SetVariable = "$setVariable";
-    public static final String UpdateVariable = "#";
     public static final String Foreach = "$Foreach";
+    public static final String AddMethod = "$AddMethod";
     public static final String StringAppend = "+";
     private static final HashMap<String, MethodCallable> methods = new HashMap<>();
     private static final MethodCallable defaultMethod = new MethodCallable((n, p, v) -> {
@@ -37,8 +38,9 @@ public class MethodService {
     public static Object call(String methodName, String... parameters) {
         return getMethod(methodName).call(methodName, parameters);
     }
+
     public static Object call(String methodName, String[] parameters, Object[] variables) {
-        return getMethod(methodName).call(methodName, parameters,variables);
+        return getMethod(methodName).call(methodName, parameters, variables);
     }
 
     public static MethodCallable getMethod(String methodName) {
@@ -156,8 +158,17 @@ public class MethodService {
             }
             return builder.toString();
         });
-        registerMethod(UpdateVariable, (n, p, v) -> {
-            requestValue(v[0]);
+        registerMethod(AddMethod, (n, p, v) -> {
+            String[] parms = Arrays.copyOfRange(p, 2, p.length);
+            log("[MethodService]注册方法： %s(%s){%s}\n", p[0], Arrays.toString(parms), p[1]);
+            MethodService.registerMethod(p[0], (n2, p2, v2) -> {
+                for (int i = 0; i < parms.length; i++) {
+                    GlobalVariable.addVariable("#" + parms[i], v2[i] == null ? p[i] : v2[i]);//添加临时变量
+                }
+                List<String> sentence = InitParser.getCodeblocks_Sentence().get(p[1]);
+                StatementAnalyzer.analyzeAndRun(sentence);
+                return GlobalVariable.getValue("#" + p[0]);//方法名称的修改即为修改返回值
+            });
             return v[0];
         });
         registerMethod(Foreach, (n, p, v) -> {

@@ -6,6 +6,7 @@ import github.axolotl.main.grammar.util.InitParser;
 import java.util.*;
 
 import static github.axolotl.main.GlobalVariable.requestValue;
+import static github.axolotl.main.grammar.util.ConfigUtil.cheekVar;
 
 /**
  * @author AxolotlXM
@@ -48,9 +49,24 @@ public class StatementAnalyzer {
                     split[0].trim(), split[1].trim());
         }
 
+        if (sentence.startsWith("def ")) {//Foreach
+            String methodName = sentence.split("def ")[1].split("\\(")[0].trim();
+            String[] paramsName = sentence.substring(sentence.indexOf("(") + 1, sentence.lastIndexOf(")")).split(",");//此时还是有空格的
+            String codeBlock = sentence.split("\\)")[1].trim();
+            String[] params = new String[paramsName.length + 2];//[方法名称,CodeBlock,方法参数]
+            for (int i = 0; i < paramsName.length; i++) {
+                params[i + 2] = paramsName[i].trim();
+            }
+            params[0] = methodName;
+            params[1] = codeBlock;
+//            System.out.println("params = " + Arrays.toString(params));
+            return MethodService.call(MethodService.AddMethod,
+                    params);
+        }
 
-        if (sentence.contains("(") && sentence.contains(")")) {//不支持方法嵌套
-            return requestValueForSyntax(sentence);
+
+        if (sentence.contains("(") && sentence.contains(")")) {
+            return requestValueForSyntax(sentence, false);//直接调用的方法不检查返回值
         }
         return null;
 
@@ -60,12 +76,14 @@ public class StatementAnalyzer {
     /**
      * 获取变量的值或
      * 获取一段语句的结果 可以是嵌套的方法调用
+     *
+     * @param cheek 是否检查返回值
      */
-    public static Object requestValueForSyntax(String text) {
-        Object var = text.trim();
+    public static Object requestValueForSyntax(String text, boolean cheek) {
+        Object var = null;
         try {//字面量和函数返回值的处理
-            String name = var.toString();
-
+            String name = text.trim();
+            if (!cheekVar || !cheek) var = name;
             if (GlobalVariable.requestValue(name) != null) {
                 var = requestValue(name);
             }
@@ -74,11 +92,19 @@ public class StatementAnalyzer {
                 String methodName = name.substring(0, name.indexOf("("));
                 String[] params = name.substring(name.indexOf("(") + 1, name.lastIndexOf(")")).split(",");//此时还是有空格的
                 var = MethodService.call(methodName, params);
-
+                if (cheekVar && cheek && var == null)
+                    System.err.printf("解析运算[%s]的时候出错，请检查函数[%s]是否可有返回值\n", methodName, methodName);
+                return var;
             }
         } catch (Exception ignored) {
         }
+        if (cheekVar && cheek && var == null)
+            System.err.printf("解析变量[%s]的时候出错，请检查[%s]是否可运算\n", text, text);
         return var;
+    }
+
+    public static Object requestValueForSyntax(String text) {
+        return requestValueForSyntax(text, true);
     }
 
     public static List<Object> analyzeAndRun(List<String> sentences) {
