@@ -88,19 +88,61 @@ public class StatementAnalyzer {
                 var = requestValue(name);
             }
 
-            if (name.contains("(") && name.contains(")")) {//不支持方法嵌套
+            if (name.contains("(") && name.contains(")")) {
                 String methodName = name.substring(0, name.indexOf("("));
-                String[] params = name.substring(name.indexOf("(") + 1, name.lastIndexOf(")")).split(",");//此时还是有空格的
+                List<String> paramsList = getParamsList(name);
+
+                // 转换为数组
+                String[] params = paramsList.toArray(new String[0]);
+                System.out.println("params = " + Arrays.toString(params));
+
                 var = MethodService.call(methodName, params);
-                if (cheekVar && cheek && var == null)
+                if (cheekVar && cheek && var == null) {
                     System.err.printf("解析运算[%s]的时候出错，请检查函数[%s]是否可有返回值\n", methodName, methodName);
+                }
                 return var;
             }
+
         } catch (Exception ignored) {
         }
         if (cheekVar && cheek && var == null)
             System.err.printf("解析变量[%s]的时候出错，请检查[%s]是否可运算\n", text, text);
         return var;
+    }
+
+    /**
+     * 获取参数列表
+     * 该方法由AI修复
+     */
+    private static List<String> getParamsList(String name) {
+        String paramsString = name.substring(name.indexOf("(") + 1, name.lastIndexOf(")"));
+
+        // 分割参数，支持嵌套方法
+        List<String> paramsList = new ArrayList<>();
+        StringBuilder currentParam = new StringBuilder();
+        int balance = 0; // 用于跟踪括号的嵌套层级
+
+        for (char ch : paramsString.toCharArray()) {
+            if (ch == '(') {
+                balance++;
+            } else if (ch == ')') {
+                balance--;
+            }
+
+            // 遇到逗号且不在嵌套括号内，分割参数
+            if (ch == ',' && balance == 0) {
+                paramsList.add(currentParam.toString().trim());
+                currentParam.setLength(0); // 清空当前参数
+            } else {
+                currentParam.append(ch);
+            }
+        }
+
+        // 添加最后一个参数
+        if (!currentParam.isEmpty()) {
+            paramsList.add(currentParam.toString().trim());
+        }
+        return paramsList;
     }
 
     public static Object requestValueForSyntax(String text) {

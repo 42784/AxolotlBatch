@@ -27,6 +27,7 @@ public class InitParser {
         AtomicReference<String> reference = new AtomicReference<>(code);//为了引用传递 使得方法可以修改code
         parseNote(reference);//注释处理
         parseString(reference);//字符串处理
+        parseStringAppend(reference);//语法糖 + 连接字符串
         List<String> mainCodes = parseCodeBlock(reference.get(), 0, MainBlock);//代码块解析
 
         System.out.println("==================Output==================");
@@ -38,6 +39,80 @@ public class InitParser {
 
 
     }
+
+    /**
+     * 语法糖 字符串拼接
+     * 此部分由DeepseekR1生成
+     */
+    public static void parseStringAppend(AtomicReference<String> reference) {
+        String code = reference.get();
+        while (true) {
+            int plusIndex = code.indexOf('+');
+            if (plusIndex == -1) break;
+
+            // 找到+左边的操作数
+            String leftOperand = extractOperand(code, plusIndex - 1, -1);
+
+            // 找到+右边的操作数
+            String rightOperand = extractOperand(code, plusIndex + 1, 1);
+
+            // 构建 append 函数调用
+            String appendCall = "append(" + leftOperand + ", " + rightOperand + ")";
+
+            // 替换原始的 + 表达式
+            String leftPart = code.substring(0, code.indexOf(leftOperand, plusIndex - leftOperand.length()));
+            String rightPart = code.substring(code.indexOf(rightOperand, plusIndex + 1) + rightOperand.length());
+            code = leftPart + appendCall + rightPart;
+        }
+        reference.set(code); // 更新代码
+    }
+
+    /**
+     * 提取操作数
+     */
+    private static String extractOperand(String code, int start, int direction) {
+        int index = start;
+        StringBuilder operand = new StringBuilder();
+        int balance = 0; // 用于匹配括号
+
+        while (index >= 0 && index < code.length()) {
+            char ch = code.charAt(index);
+
+            // 处理括号
+            if (ch == '(') {
+                if (direction == -1) break; // 左操作数遇到左括号，结束
+                balance++;
+            } else if (ch == ')') {
+                if (direction == 1 && balance == 0) break; // 右操作数遇到右括号，结束
+                balance--;
+            }
+
+            // 如果不是操作数的有效字符，结束
+            if (balance < 0 || (ch != ' ' && ch != '+' && !isValidOperandChar(ch))) {
+                break;
+            }
+
+            // 添加字符到操作数
+            if (direction == -1) {
+                operand.insert(0, ch); // 左操作数从后往前添加
+            } else {
+                operand.append(ch); // 右操作数从前往后添加
+            }
+
+            index += direction;
+        }
+
+        return operand.toString().trim();
+    }
+
+    /**
+     * 检查字符是否是操作数的有效字符
+     */
+    private static boolean isValidOperandChar(char ch) {
+        // 允许字母、数字、下划线和括号
+        return Character.isLetterOrDigit(ch) || ch == '_' || ch == '(' || ch == ')' || ch == '$' || ch == '#';
+    }
+
 
     /**
      * 剔除//注释后的内容

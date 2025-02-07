@@ -28,7 +28,8 @@ public class MethodService {
     public static final String SetVariable = "$setVariable";
     public static final String Foreach = "$Foreach";
     public static final String AddMethod = "$AddMethod";
-    public static final String StringAppend = "+";
+    public static final String Iterator = "$iterator";
+    public static final String StringAppend = "append";
     private static final HashMap<String, MethodCallable> methods = new HashMap<>();
     private static final MethodCallable defaultMethod = new MethodCallable((n, p, v) -> {
         System.err.println("未被定义的方法: " + n);
