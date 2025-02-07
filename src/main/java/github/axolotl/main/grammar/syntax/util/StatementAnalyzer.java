@@ -25,7 +25,6 @@ public class StatementAnalyzer {
      * @return 可执行的语法
      */
     public static Object analyzeAndRun(String sentence) {
-        sentence = sentence.replace(";", "").trim();//先去除分号
         if (sentence.startsWith(InitParser.CodeBlockSymbol)) {
             codeblocksSentence.get(sentence).forEach(StatementAnalyzer::analyzeAndRun);//解析运行代码块
         }

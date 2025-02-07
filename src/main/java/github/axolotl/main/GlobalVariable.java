@@ -16,11 +16,11 @@ public class GlobalVariable {
         return variables.get(variableName);
     }
 
-    public static void setVariable(String variableName, Object variable) {
+    private static void setVariable(String variableName, Object variable) {
         variables.put(variableName, variable);
     }
 
-    public static void removeVariable(String variableName) {
+    private static void removeVariable(String variableName) {
         variables.remove(variableName);
     }
 
@@ -39,8 +39,7 @@ public class GlobalVariable {
     }
 
     public static Object requestValue(Object variableName) {
-        String name = variableName.toString().trim();
-        return variables.getOrDefault(name, null);
+        return getValue(variableName.toString().trim());
     }
 
     public static <T> T requestValue(Object variableName, Class<T> type) {

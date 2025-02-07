@@ -19,8 +19,8 @@ public class Main {
 //        String code = IOUtils.toString(new FileInputStream("G:\\CreativeJava\\2025_02\\AxolotlBatch\\test\\batch\\ffmpeg.ab"));
 //        String code = IOUtils.toString(new FileInputStream("G:\\CreativeJava\\2025_02\\AxolotlBatch\\test\\batch\\fileMove.ab"));
 //        String code = IOUtils.toString(new FileInputStream("G:\\CreativeJava\\2025_02\\AxolotlBatch\\test\\batch\\defFunction.ab"));
-        String code = IOUtils.toString(new FileInputStream("G:\\CreativeJava\\2025_02\\AxolotlBatch\\test\\batch\\iterator.ab"));
-        code = code.replace("\r\n", "\n");//Windows下的换行符处理
+//        String code = IOUtils.toString(new FileInputStream("G:\\CreativeJava\\2025_02\\AxolotlBatch\\test\\batch\\iterator.ab"));
+        String code = IOUtils.toString(new FileInputStream("G:\\CreativeJava\\2025_02\\AxolotlBatch\\test\\batch\\mathCal.ab"));
         GlobalVariable.initDefaultVariable();
         InitParser.parse(code);
         Thread.sleep(100);

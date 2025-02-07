@@ -1,5 +1,10 @@
 package github.axolotl.main.grammar.syntax.util;
 
+import com.ezylang.evalex.EvaluationException;
+import com.ezylang.evalex.Expression;
+import com.ezylang.evalex.config.ExpressionConfiguration;
+import com.ezylang.evalex.data.EvaluationValue;
+import com.ezylang.evalex.parser.ParseException;
 import dczx.axolotl.command.CommandResult;
 import dczx.axolotl.command.DefaultExecutor;
 import dczx.axolotl.util.FileUtil;
@@ -12,6 +17,8 @@ import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import static github.axolotl.main.GlobalVariable.requestValue;
 import static github.axolotl.main.grammar.syntax.util.PolymorphismUtil.convertArg;
@@ -123,6 +130,39 @@ public class MethodService {
             System.out.println(out);
             return null;
         });
+        registerMethod("expression", (n, p, v) -> expression(p, v).getStringValue());
+        registerMethod("expressionInt", (n, p, v) -> expression(p, v).getNumberValue().intValue());
+        registerMethod("expressionDouble", (n, p, v) -> expression(p, v).getValue());
+        registerMethod("expressionBoolean", (n, p, v) -> expression(p, v).getBooleanValue());
+        registerMethod("expressionString", (n, p, v) -> expression(p, v).getStringValue());
+    }
+
+    // 使用Guava Cache作为缓存，具备大小限制和过期策略
+    private static final ConcurrentHashMap<String, Expression> EXPRESSION_CACHE = new ConcurrentHashMap<>(100);
+    private static final ExpressionConfiguration defaultConfig = ExpressionConfiguration.builder().build();
+
+    //缓存这个算数以加快运行速度 还有配置文件不要多次构建
+    private static EvaluationValue expression(String[] p, Object[] v) throws EvaluationException, ParseException {
+        Expression expression;
+        if (EXPRESSION_CACHE.get(p[0]) == null) {
+            expression = new Expression(v[0].toString(), defaultConfig);
+            EXPRESSION_CACHE.put(p[0], expression);
+        } else {
+            expression = EXPRESSION_CACHE.get(p[0]);
+        }
+        Map<String, Object> values = new HashMap<>();
+        for (int i = 1; i < v.length; i++) {
+//            values.put("var" + i, Double.parseDouble(v[i].toString()));
+            Object var = v[i];
+            switch (var) {
+                case Double value -> values.put("var" + i, var);
+                case Integer value -> values.put("var" + i, var);
+                default -> values.put("var" + i, Double.parseDouble(var.toString()));
+            }
+        }
+        return expression
+                .withValues(values)
+                .evaluate();
     }
 
     private static void regFileMethod() {
@@ -156,6 +196,7 @@ public class MethodService {
     private static void regDefaultMethod() {
         registerMethod(SetVariable, (n, p, v) -> {
             GlobalVariable.addVariable(p[0], v[0]);
+//            System.out.printf("SetVariable: %s -> %s\n", p[0],v[0]);
             return null;
         });
         registerMethod(StringAppend, (n, p, v) -> {
@@ -185,43 +226,39 @@ public class MethodService {
             return v[0];
         });
         registerMethod(Foreach, (n, p, v) -> {
-            String varName = p[0];
+            String varName = "#" + p[0];
             Object var = v[0];
-            List<String> tempVarList = new ArrayList<>();//Foreach中的临时变量
-
             List<String> sentences = InitParser.getCodeblocks_Sentence().get(p[1]);
-            //由于未知原因 直接运行代码块的内容有问题 所以只好重新解析然后运行
+            //由于临时变量的处理运行慢 所以不清空临时变量
             switch (var) {//已被转换为Var对象
                 case Object[] objects -> {
                     for (Object object : objects) {
-                        addTempSubField("#" + varName, object, tempVarList);
-                        addTempSubField("#foreach", object, tempVarList);
+                        addTempSubField(varName, object);
+                        addTempSubField("#foreach", object);
                         analyseAndRun(sentences);//解析并运行一次循环体
                     }
                 }
                 case Map<?, ?> map -> {
                     map.forEach((k, value) -> {
-                        addTempSubField("#k", k, tempVarList);
-                        addTempSubField("#v", v, tempVarList);
+                        addTempSubField("#key", k);
+                        addTempSubField("#value", v);
                         analyseAndRun(sentences);//解析并运行一次循环体
                     });
                 }
                 case Collection<?> collection -> {
                     collection.forEach(object -> {
-                        addTempSubField("#" + varName, object, tempVarList);
-                        addTempSubField("#foreach", object, tempVarList);
+                        addTempSubField(varName, object);
+                        addTempSubField("#foreach", object);
                         analyseAndRun(sentences);//解析并运行一次循环体
                     });
                 }
                 default -> {
-                    addTempSubField("#" + varName, var, tempVarList);
-                    addTempSubField("#foreach", var, tempVarList);
+                    addTempSubField(varName, var);
+                    addTempSubField("#foreach", var);
                     analyseAndRun(sentences);//解析并运行一次循环体
                 }
             }
 
-
-            tempVarList.forEach(GlobalVariable::removeVariable);//清空临时变量
             return null;
         });
     }
@@ -233,29 +270,27 @@ public class MethodService {
     /**
      * 添加临时变量
      *
-     * @param varName     变量名
-     * @param var         变量
-     * @param tempVarList 添加了的会加到这个list
+     * @param varName 变量名
+     * @param var     变量
      */
-    private static void addTempVar(String varName, Object var, List<String> tempVarList) {
-        tempVarList.add(varName);
+    private static void addTempVar(String varName, Object var) {
         GlobalVariable.addVariable(varName, var);
     }
 
     /**
      * 添加一个变量包括其常用字段临时变量
      */
-    private static void addTempSubField(String varName, Object var, List<String> tempVarList) {
-        addTempVar(varName, var, tempVarList);
+    private static void addTempSubField(String varName, Object var) {
+        addTempVar(varName, var);
         switch (var) {
             case File file -> {
-                addTempVar(varName + "#path", file.getPath(), tempVarList);
-                addTempVar(varName + "#name", file.getName(), tempVarList);
+                addTempVar(varName + "#path", file.getPath());
+                addTempVar(varName + "#name", file.getName());
             }
             case CommandResult result -> {
-                addTempVar(varName + "#out", result.getOut(), tempVarList);
-                addTempVar(varName + "#err", result.getErr(), tempVarList);
-                addTempVar(varName + "#exitcode", result.getExitCode(), tempVarList);
+                addTempVar(varName + "#out", result.getOut());
+                addTempVar(varName + "#err", result.getErr());
+                addTempVar(varName + "#exitcode", result.getExitCode());
             }
 
             default -> {

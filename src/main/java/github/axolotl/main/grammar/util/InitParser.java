@@ -24,13 +24,17 @@ public class InitParser {
 
     // 解析器主方法
     public static void parse(String code) {
-        AtomicReference<String> reference = new AtomicReference<>(code);//为了引用传递 使得方法可以修改code
+        //Windows下的换行符处理
+        AtomicReference<String> reference = new AtomicReference<>(code.replace("\r\n", "\n"));//为了引用传递 使得方法可以修改code
         parseNote(reference);//注释处理
         parseString(reference);//字符串处理
         parseStringAppend(reference);//语法糖 + 连接字符串
-        List<String> mainCodes = parseCodeBlock(reference.get(), 0, MainBlock);//代码块解析
 
+        List<String> mainCodes = parseCodeBlock(reference.get(), 0, MainBlock);//代码块解析
         System.out.println("==================Output==================");
+        codeblocks_Sentence.forEach( (key, block) -> {
+            block.replaceAll(s -> s.replace(";", ""));//处理分号提早 防止重复处理
+        });
         mainCodes.forEach(sentence -> {
             log("[InitParser]执行语句: %s", sentence);
             //由全部解析，修改为动态的解析执行

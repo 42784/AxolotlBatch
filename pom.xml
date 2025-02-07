@@ -37,6 +37,12 @@
             <version>5.8.1</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.ezylang</groupId>
+            <artifactId>EvalEx</artifactId>
+            <version>3.4.0</version>
+        </dependency>
     </dependencies>
 
 
