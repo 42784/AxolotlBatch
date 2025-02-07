@@ -1,6 +1,8 @@
 package github.axolotl.main;
 
 
+import github.axolotl.main.grammar.util.AnalyzerMethodCache;
+import github.axolotl.main.grammar.util.AnalyzerSentenceCache;
 import github.axolotl.main.grammar.util.InitParser;
 import lombok.SneakyThrows;
 import org.apache.commons.io.IOUtils;
@@ -23,7 +25,9 @@ public class Main {
         String code = IOUtils.toString(new FileInputStream("G:\\CreativeJava\\2025_02\\AxolotlBatch\\test\\batch\\mathCal.ab"));
         GlobalVariable.initDefaultVariable();
         InitParser.parse(code);
-        Thread.sleep(100);
+//        System.out.println("AnalyzerSentenceCache.cacheTable = " + AnalyzerSentenceCache.cacheTable);
+//        System.out.println("AnalyzerMethodCache.cacheTable = " + AnalyzerMethodCache.cacheTable);
+//        Thread.sleep(100);
 
     }
 }

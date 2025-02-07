@@ -51,7 +51,7 @@ public class MethodService {
         return getMethod(methodName).call(methodName, parameters, variables);
     }
 
-    public static MethodCallable getMethod(String methodName) {
+    private static MethodCallable getMethod(String methodName) {
         return methods.getOrDefault(methodName, defaultMethod);
     }
 
@@ -221,7 +221,7 @@ public class MethodService {
                 }
                 List<String> sentence = InitParser.getCodeblocks_Sentence().get(p[1]);
                 StatementAnalyzer.analyzeAndRun(sentence);
-                return GlobalVariable.getValue("#" + p[0]);//方法名称的修改即为修改返回值
+                return GlobalVariable.requestValue("#" + p[0]);//方法名称的修改即为修改返回值
             });
             return v[0];
         });

@@ -28,18 +28,13 @@ public class GlobalVariable {
         variables.put(variableName, variable);
     }
 
-    //getValue
-    public static Object getValue(String variableName) {
-        return variables.get(variableName);
-    }
-
     public static <T> T getValue(String variableName, Class<T> type) {
         return type.cast(variables.get(variableName));
 
     }
 
     public static Object requestValue(Object variableName) {
-        return getValue(variableName.toString().trim());
+        return variables.get(variableName.toString());
     }
 
     public static <T> T requestValue(Object variableName, Class<T> type) {

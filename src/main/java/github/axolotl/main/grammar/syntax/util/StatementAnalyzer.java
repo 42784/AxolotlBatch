@@ -1,6 +1,8 @@
 package github.axolotl.main.grammar.syntax.util;
 
 import github.axolotl.main.GlobalVariable;
+import github.axolotl.main.grammar.util.AnalyzerMethodCache;
+import github.axolotl.main.grammar.util.AnalyzerSentenceCache;
 import github.axolotl.main.grammar.util.InitParser;
 
 import java.util.*;
@@ -25,49 +27,65 @@ public class StatementAnalyzer {
      * @return 可执行的语法
      */
     public static Object analyzeAndRun(String sentence) {
-        if (sentence.startsWith(InitParser.CodeBlockSymbol)) {
-            codeblocksSentence.get(sentence).forEach(StatementAnalyzer::analyzeAndRun);//解析运行代码块
-        }
-        if (sentence.contains("=")) {
-            String[] split = sentence.split("=");
-            int len = split.length;
 
-            String text = split[len - 1];
-            Object result = requestValueForSyntax(text);
-
-            for (int i = 0; i < len - 1; i++) {
-                MethodService.call(MethodService.SetVariable, new String[]{split[i].trim()}, new Object[]{result});
+        if (AnalyzerSentenceCache.isCache(sentence)) {//有缓存 执行运行
+            return AnalyzerSentenceCache.executeCache(sentence);
+        } else {
+            if (sentence.startsWith(InitParser.CodeBlockSymbol)) {
+                //解析运行代码块
+                AnalyzerSentenceCache.cacheAndRun(sentence, (cache) -> {
+                    codeblocksSentence.get(cache).forEach(StatementAnalyzer::analyzeAndRun);
+                    return null;
+                });
             }
-            return result;
+            if (sentence.contains("=")) {
+                String[] split = sentence.split("=");
+                int len = split.length;
 
-        }
+                String text = split[len - 1];
+                Object result = null;
+                for (int i = 0; i < len - 1; i++) {
+                    String varName = split[i].trim();
+                    result = AnalyzerSentenceCache.cacheAndRun(sentence, (cache) -> MethodService.call(MethodService.SetVariable, new String[]{varName}, new Object[]{requestValueForSyntax(text)}));
+                }
 
-        if (sentence.contains("->")) {//Foreach
-            String[] split = sentence.split("->");
-            return MethodService.call(MethodService.Foreach,
-                    split[0].trim(), split[1].trim());
-        }
+                return result;
 
-        if (sentence.startsWith("def ")) {//Foreach
-            String methodName = sentence.split("def ")[1].split("\\(")[0].trim();
-            String[] paramsName = sentence.substring(sentence.indexOf("(") + 1, sentence.lastIndexOf(")")).split(",");//此时还是有空格的
-            String codeBlock = sentence.split("\\)")[1].trim();
-            String[] params = new String[paramsName.length + 2];//[方法名称,CodeBlock,方法参数]
-            for (int i = 0; i < paramsName.length; i++) {
-                params[i + 2] = paramsName[i].trim();
             }
-            params[0] = methodName;
-            params[1] = codeBlock;
+
+            if (sentence.contains("->")) {//Foreach
+                String[] split = sentence.split("->");
+
+                String varName = split[0].trim();
+                String blockName = split[1].trim();
+                return AnalyzerSentenceCache.cacheAndRun(sentence, (cache) -> MethodService.call(MethodService.Foreach, varName, blockName));
+            }
+
+            if (sentence.startsWith("def ")) {//Foreach
+                String methodName = sentence.split("def ")[1].split("\\(")[0].trim();
+                String[] paramsName = sentence.substring(sentence.indexOf("(") + 1, sentence.lastIndexOf(")")).split(",");//此时还是有空格的
+                String codeBlock = sentence.split("\\)")[1].trim();
+                String[] params = new String[paramsName.length + 2];//[方法名称,CodeBlock,方法参数]
+                for (int i = 0; i < paramsName.length; i++) {
+                    params[i + 2] = paramsName[i].trim();
+                }
+                params[0] = methodName;
+                params[1] = codeBlock;
 //            System.out.println("params = " + Arrays.toString(params));
-            return MethodService.call(MethodService.AddMethod,
-                    params);
-        }
+                return AnalyzerSentenceCache.cacheAndRun(sentence, (cache) -> MethodService.call(MethodService.AddMethod, params));
+
+            }
 
 
-        if (sentence.contains("(") && sentence.contains(")")) {
-            return requestValueForSyntax(sentence, false);//直接调用的方法不检查返回值
+            if (sentence.contains("(") && sentence.contains(")")) {
+
+                return AnalyzerSentenceCache.cacheAndRun(sentence, (cache) ->
+                        requestValueForSyntax(sentence, false));//直接调用的方法不检查返回值
+
+            }
+            return null;
         }
-        return null;
+
 
     }
 
@@ -83,23 +101,28 @@ public class StatementAnalyzer {
         try {//字面量和函数返回值的处理
             String name = text.trim();
             if (!cheekVar || !cheek) var = name;
-            if (GlobalVariable.requestValue(name) != null) {
-                var = requestValue(name);
+            Object requestValue = requestValue(name);
+            if (requestValue != null) {
+                var = requestValue;
             }
-
             if (name.contains("(") && name.contains(")")) {
-                String methodName = name.substring(0, name.indexOf("("));
-                List<String> paramsList = getParamsList(name);
-
-                // 转换为数组
-                String[] params = paramsList.toArray(new String[0]);
-//                System.out.println("params = " + Arrays.toString(params));
-
-                var = MethodService.call(methodName, params);
-                if (cheekVar && cheek && var == null) {
-                    System.err.printf("解析运算[%s]的时候出错，请检查函数[%s]是否可有返回值\n", methodName, methodName);
+                if (AnalyzerMethodCache.isCache(name)) {
+                    var = AnalyzerMethodCache.executeCache(name);
+                } else {//缓存一下这个方法
+                    String methodName = name.substring(0, name.indexOf("("));
+                    List<String> paramsList = getParamsList(name);
+                    // 转换为数组
+                    String[] params = paramsList.toArray(new String[0]);
+                    return AnalyzerMethodCache.cacheAndRun(name, (varName) -> {
+                        //                System.out.println("params = " + Arrays.toString(params));
+                        Object var2 = MethodService.call(methodName, params);
+                        if (cheekVar && cheek && var2 == null) {
+                            System.err.printf("解析运算[%s]的时候出错，请检查函数[%s]是否可有返回值\n", methodName, methodName);
+                        }
+                        return var2;
+                    });
                 }
-                return var;
+
             }
 
         } catch (Exception ignored) {
