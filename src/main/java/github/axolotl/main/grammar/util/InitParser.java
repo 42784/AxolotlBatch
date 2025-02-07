@@ -1,8 +1,6 @@
 package github.axolotl.main.grammar.util;
 
 import github.axolotl.main.GlobalVariable;
-import github.axolotl.main.grammar.syntax.Syntax;
-import github.axolotl.main.grammar.syntax.Sentence;
 import github.axolotl.main.grammar.syntax.util.StatementAnalyzer;
 import lombok.Getter;
 
@@ -17,43 +15,24 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class InitParser {
     public static final String CodeBlockSymbol = "$CODE_BLOCK";
+    public static final String MainBlock = "$MainBlock";
     public static final String StringSymbol = "$Str";
     @Getter
-    private static final HashMap<String, List<Sentence>> codeblocks_Sentence = new HashMap<>();//第一步 分句 句子
-    @Getter
-    private static final HashMap<String, List<Syntax>> codeblocks_Syntax = new HashMap<>();//第二步 转换 语句
+    private static final HashMap<String, List<String>> codeblocks_Sentence = new HashMap<>();
 
     // 解析器主方法
     public static void parse(String code) {
         AtomicReference<String> reference = new AtomicReference<>(code);//为了引用传递 使得方法可以修改code
         parseNote(reference);//注释处理
         parseString(reference);//字符串处理
-        List<Sentence> list = parseCodeBlock(reference.get(), 0, CodeBlockSymbol + 0);//代码块解析
+        List<String> mainCodes = parseCodeBlock(reference.get(), 0, MainBlock);//代码块解析
 
-        System.out.println("==================================");
-        list.stream().map(Sentence::getSentence).forEach(s -> System.out.printf("Run: %s\n", s));
-        System.out.println("==================================");
-
-        /*codeblocks_Sentence.forEach((k, v) -> {
-            System.out.println(k + " = " + v.toString().replace("\n", " "));
-        });*/
-
-
-        codeblocks_Sentence.forEach((key, value) -> {
-            value.forEach(s -> {
-                String sentence = s.getSentence();
-                if (sentence.trim().startsWith("~")) {
-                    //语法糖 ~a -> a=#(a);
-                    String varName = sentence.split("~")[1];
-                    s.setSentence("%s = #(%s);".formatted(varName, varName));
-                }
-            });
-            codeblocks_Syntax.put(key, StatementAnalyzer.analyze(value));
-        });//句法转换
         System.out.println("==================Output==================");
-//        System.out.println("codeblocks_Sentence = " + codeblocks_Sentence);
-//        System.out.println("codeblocks_Syntax = " + codeblocks_Syntax);
-        codeblocks_Syntax.get(CodeBlockSymbol + 0).forEach(Syntax::execute);//执行主方法每一句
+        mainCodes.forEach(sentence -> {
+            System.out.printf("\u001B[32m[InitParser]Run: %s\u001B[0m\n", sentence);
+            //由全部解析，修改为动态的解析执行
+            StatementAnalyzer.analyzeAndRun(sentence);//执行主方法每一句
+        });
 
 
     }
@@ -94,8 +73,8 @@ public class InitParser {
      * @param id    这一段解析代码的id
      * @return 一句一句代码
      */
-    private static List<Sentence> parseCodeBlock(String code, int start, String id) {
-        ArrayList<Sentence> sentences = new ArrayList<>();//本代码块的语句
+    private static List<String> parseCodeBlock(String code, int start, String id) {
+        ArrayList<String> sentences = new ArrayList<>();//本代码块的语句
         StringBuilder outputCode = new StringBuilder();//处理代码块逻辑后的代码
         char[] chars = code.toCharArray();
         int deepCnt = 0;//进入的层级
@@ -127,10 +106,11 @@ public class InitParser {
             if (deepCnt == 0) {
                 outputCode.append(aChar);
             }
+
             if (aChar == ';' && deepCnt == 0) {
                 if (outputCode.toString().replace(" ", "").replace("\n", "").length() <= 1)//无效的行
                     continue;//只有一个分号
-                sentences.add(new Sentence(outputCode.toString().replace("\n", "")));
+                sentences.add(outputCode.toString().replace("\n", ""));
                 outputCode = new StringBuilder();
             }
 

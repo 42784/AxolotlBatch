@@ -4,9 +4,6 @@ import dczx.axolotl.command.CommandResult;
 import dczx.axolotl.command.DefaultExecutor;
 import dczx.axolotl.util.FileUtil;
 import github.axolotl.main.GlobalVariable;
-import github.axolotl.main.grammar.syntax.Method;
-import github.axolotl.main.grammar.syntax.Sentence;
-import github.axolotl.main.grammar.syntax.Syntax;
 import github.axolotl.main.grammar.util.InitParser;
 
 
@@ -31,17 +28,25 @@ public class MethodService {
     public static final String UpdateVariable = "#";
     public static final String Foreach = "$Foreach";
     public static final String StringAppend = "+";
-    private static final HashMap<String, MethodEntity> methods = new HashMap<>();
+    private static final HashMap<String, MethodCallable> methods = new HashMap<>();
+    private static final MethodCallable defaultMethod = new MethodCallable((n, p, v) -> {
+        System.err.println("未被定义的方法: " + n);
+        return null;
+    });
 
-    public static MethodEntity getMethod(String methodName) {
-        return methods.getOrDefault(methodName, emptyArgs -> {
-            System.err.println("未被定义的方法: " + methodName);
-            return null;
-        });
+    public static Object call(String methodName, String... parameters) {
+        return getMethod(methodName).call(methodName, parameters);
+    }
+    public static Object call(String methodName, String[] parameters, Object[] variables) {
+        return getMethod(methodName).call(methodName, parameters,variables);
     }
 
-    public static void registerMethod(String methodName, MethodEntity method) {
-        methods.put(methodName, method);
+    public static MethodCallable getMethod(String methodName) {
+        return methods.getOrDefault(methodName, defaultMethod);
+    }
+
+    public static void registerMethod(String methodName, IMethod method) {
+        methods.put(methodName, new MethodCallable(method));
     }
 
     static {
@@ -53,10 +58,10 @@ public class MethodService {
     }
 
     private static void regSimpleMethod() {
-        registerMethod("GetTimeMillis", v -> System.currentTimeMillis());
-        registerMethod("GetTime", v -> System.currentTimeMillis() / 1000);
-        registerMethod("Date", v -> new Date());
-        registerMethod("DateFormat", v -> {
+        registerMethod("getTimeMillis", (n, p, v) -> System.currentTimeMillis());
+        registerMethod("getTime", (n, p, v) -> System.currentTimeMillis() / 1000);
+        registerMethod("getDate", (n, p, v) -> new Date());
+        registerMethod("getDateFormat", (n, p, v) -> {
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
             return simpleDateFormat.format(new Date());
         });
@@ -65,11 +70,11 @@ public class MethodService {
     static DefaultExecutor defaultExecutor = new DefaultExecutor(getExecHome());
 
     private static void regExecMethod() {
-        registerMethod("exec", v -> {
+        registerMethod("exec", (n, p, v) -> {
             System.out.println("------>" + Arrays.toString((Object[]) v));
             return defaultExecutor.runCommand(getExecPreFix() + v[0]);
         });
-        registerMethod("execWithHome", v -> {
+        registerMethod("execWithHome", (n, p, v) -> {
             if (getExecHome().equals(v[1]))
                 return defaultExecutor.runCommand(getExecPreFix() + v[0]);
             else {
@@ -88,7 +93,7 @@ public class MethodService {
     }
 
     private static void regSystemOutputMethod() {
-        registerMethod("println", v -> {
+        registerMethod("println", (n, p, v) -> {
             for (Object variable : v) {
                 if (variable instanceof Object[]) {
                     System.out.print(Arrays.toString((Object[]) variable));
@@ -99,7 +104,7 @@ public class MethodService {
             System.out.println();
             return null;
         });
-        registerMethod("print", v -> {
+        registerMethod("print", (n, p, v) -> {
             for (Object variable : v) {
                 if (variable instanceof Object[]) {
                     System.out.print(Arrays.toString((Object[]) variable));
@@ -112,13 +117,13 @@ public class MethodService {
     }
 
     private static void regFileMethod() {
-        registerMethod("getFile", v -> {
+        registerMethod("getFile", (n, p, v) -> {
             return new File(String.valueOf(v[0]));
         });
-        registerMethod("listFiles", v -> {
+        registerMethod("listFiles", (n, p, v) -> {
             return ((File) v[0]).listFiles();
         });
-        registerMethod("moveFile", v -> {
+        registerMethod("moveFile", (n, p, v) -> {
             File oldfile = getFile(v[0]);
             File newfile = getFile(v[1]);
             FileUtil.keepFileExists(newfile.getPath());
@@ -127,7 +132,7 @@ public class MethodService {
             oldfile.renameTo(newfile);// 覆盖
             return newFileExists;
         });
-        registerMethod("copyFile", v -> {//自动创建文件
+        registerMethod("copyFile", (n, p, v) -> {//自动创建文件
             File oldfile = getFile(v[0]);
             File newfile = getFile(v[1]);
             FileUtil.keepFileExists(newfile.getPath());
@@ -140,42 +145,27 @@ public class MethodService {
     }
 
     private static void regDefaultMethod() {
-        registerMethod(SetVariable, v -> {
-            Object var = v[1];
-            try {//字面量和函数返回值的处理
-                String name = var.toString().trim();
-                if (name.startsWith(InitParser.StringSymbol)) {
-                    var = requestValue(name);
-                }
-
-                if (name.contains("(") && name.contains(")")) {//不支持方法嵌套
-                    Method method = StatementAnalyzer.tryGetMethod(name.trim());
-                    var = method.execute();
-                }
-            } catch (Exception ignored) {
-            }
-            GlobalVariable.addVariable(((String) v[2]).replace("^", ""), var);
+        registerMethod(SetVariable, (n, p, v) -> {
+            GlobalVariable.addVariable(p[0], v[0]);
             return null;
         });
-        registerMethod(StringAppend, v -> {
+        registerMethod(StringAppend, (n, p, v) -> {
             StringBuilder builder = new StringBuilder();
             for (Object o : v) {
                 builder.append(o);
             }
             return builder.toString();
         });
-        registerMethod(UpdateVariable, v -> {
+        registerMethod(UpdateVariable, (n, p, v) -> {
             requestValue(v[0]);
             return v[0];
         });
-        registerMethod(Foreach, inputVar -> {
-            String codeBlockName = (String) inputVar[1];
-
-            String varName = ((String) inputVar[2]).replace("^", "");
+        registerMethod(Foreach, (n, p, v) -> {
+            String varName = p[0];
             Object var = requestValue(varName);
             List<String> tempVarList = new ArrayList<>();//Foreach中的临时变量
 
-            List<Sentence> sentences = InitParser.getCodeblocks_Sentence().get(codeBlockName);
+            List<String> sentences = InitParser.getCodeblocks_Sentence().get(p[1]);
             //由于未知原因 直接运行代码块的内容有问题 所以只好重新解析然后运行
             switch (var) {//已被转换为Var对象
                 case Object[] objects -> {
@@ -185,7 +175,7 @@ public class MethodService {
                     }
                 }
                 case Map<?, ?> map -> {
-                    map.forEach((k, v) -> {
+                    map.forEach((k, value) -> {
                         addTempSubField("#k", k, tempVarList);
                         addTempSubField("#v", v, tempVarList);
                         analyseAndRun(sentences);//解析并运行一次循环体
@@ -209,11 +199,8 @@ public class MethodService {
         });
     }
 
-    private static void analyseAndRun(List<Sentence> sentences) {
-        sentences.forEach(v -> {
-            List<Syntax> analyze = StatementAnalyzer.analyze(v);
-            analyze.forEach(Syntax::execute);
-        });
+    private static void analyseAndRun(List<String> sentences) {
+        sentences.forEach(StatementAnalyzer::analyzeAndRun);
     }
 
     /**

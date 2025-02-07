@@ -1,11 +1,11 @@
 package github.axolotl.main.grammar.syntax.util;
 
-import github.axolotl.main.grammar.syntax.Method;
-import github.axolotl.main.grammar.syntax.Syntax;
-import github.axolotl.main.grammar.syntax.Sentence;
+import github.axolotl.main.GlobalVariable;
 import github.axolotl.main.grammar.util.InitParser;
 
 import java.util.*;
+
+import static github.axolotl.main.GlobalVariable.requestValue;
 
 /**
  * @author AxolotlXM
@@ -15,69 +15,75 @@ import java.util.*;
 //语句分析器
 public class StatementAnalyzer {
 
-    private static final HashMap<String, List<Syntax>> codeblocksSyntax = InitParser.getCodeblocks_Syntax();
+    private static final HashMap<String, List<String>> codeblocksSentence = InitParser.getCodeblocks_Sentence();
+
     /**
      * 解析语句
      *
      * @param sentence 语句
      * @return 可执行的语法
      */
-    public static List<Syntax> analyze(Sentence sentence) {
-        ArrayList<Syntax> syntaxes = new ArrayList<>();
-
-        String text = sentence.getSentence();
-        text = text.replace(";", "").trim();//去除前后空格
-
-        if (text.startsWith(InitParser.CodeBlockSymbol)) {
-            syntaxes.addAll(codeblocksSyntax.get(text));
+    public static Object analyzeAndRun(String sentence) {
+        sentence = sentence.replace(";", "").trim();//先去除分号
+        if (sentence.startsWith(InitParser.CodeBlockSymbol)) {
+            codeblocksSentence.get(sentence).forEach(StatementAnalyzer::analyzeAndRun);//解析运行代码块
         }
-        if (text.contains("=")) {
-            String[] split = text.split("=");
+        if (sentence.contains("=")) {
+            String[] split = sentence.split("=");
             int len = split.length;
+
+            String text = split[len - 1];
+            Object result = requestValueForSyntax(text);
+
             for (int i = 0; i < len - 1; i++) {
-                syntaxes.add(new Method(MethodService.SetVariable, new Object[]{split[i].trim(), split[len - 1], "^" + split[i].trim()}));//需要原名字 否则传入会变成当前值
+                MethodService.call(MethodService.SetVariable, new String[]{split[i].trim()}, new Object[]{result});
             }
-            return syntaxes;//赋值直接返回 执行函数在赋值里面执行
+            return result;
+
+        }
+
+        if (sentence.contains("->")) {//Foreach
+            String[] split = sentence.split("->");
+            return MethodService.call(MethodService.Foreach,
+                    split[0].trim(), split[1].trim());
         }
 
 
-        if (text.contains("->")) {//Foreach
-            String[] split = text.split("->");
-            syntaxes.add(new Method(MethodService.Foreach,
-                    new Object[]{split[0].trim(), split[1].trim(),"^"+split[0].trim()}));//为了保留原名字
+        if (sentence.contains("(") && sentence.contains(")")) {//不支持方法嵌套
+            return requestValueForSyntax(sentence);
         }
+        return null;
 
-
-        if (text.contains("(") && text.contains(")")) {//不支持方法嵌套
-            syntaxes.add(tryGetMethod(text.trim()));
-        }
-
-        return syntaxes;
     }
+
 
     /**
-     * 尝试获取这个函数
-     *
-     * @param text 从文本中
+     * 获取变量的值或
+     * 获取一段语句的结果 可以是嵌套的方法调用
      */
-    public static Method tryGetMethod(String text) {
-        //TODO [B] 类似于CodeBlock一样支持方法的嵌套
+    public static Object requestValueForSyntax(String text) {
+        Object var = text.trim();
+        try {//字面量和函数返回值的处理
+            String name = var.toString();
 
-        int start = text.indexOf("(");
-        int end = text.indexOf(")");
-        String methodName = text.substring(0, start);
-        String params = text.substring(start + 1, end);
-//        System.out.println("methodName = " + methodName);
-//        System.out.println("params = " + params);
-        Object[] variables = Arrays.stream(params.split(","))
-                .toArray(Object[]::new);
+            if (GlobalVariable.requestValue(name) != null) {
+                var = requestValue(name);
+            }
 
-        return new Method(methodName, variables);
+            if (name.contains("(") && name.contains(")")) {//不支持方法嵌套
+                String methodName = name.substring(0, name.indexOf("("));
+                String[] params = name.substring(name.indexOf("(") + 1, name.lastIndexOf(")")).split(",");//此时还是有空格的
+                var = MethodService.call(methodName, params);
+
+            }
+        } catch (Exception ignored) {
+        }
+        return var;
     }
 
-    public static List<Syntax> analyze(List<Sentence> sentences) {
-        ArrayList<Syntax> syntaxes = new ArrayList<>();
-        sentences.stream().map(StatementAnalyzer::analyze).forEach(syntaxes::addAll);
-        return syntaxes;
+    public static List<Object> analyzeAndRun(List<String> sentences) {
+        ArrayList<Object> returns = new ArrayList<>();
+        sentences.stream().map(StatementAnalyzer::analyzeAndRun).forEach(returns::add);
+        return returns;
     }
 }
