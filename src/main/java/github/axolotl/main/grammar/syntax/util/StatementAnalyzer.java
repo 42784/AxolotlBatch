@@ -94,7 +94,7 @@ public class StatementAnalyzer {
 
                 // 转换为数组
                 String[] params = paramsList.toArray(new String[0]);
-                System.out.println("params = " + Arrays.toString(params));
+//                System.out.println("params = " + Arrays.toString(params));
 
                 var = MethodService.call(methodName, params);
                 if (cheekVar && cheek && var == null) {

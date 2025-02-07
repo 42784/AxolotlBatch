@@ -14,6 +14,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static github.axolotl.main.GlobalVariable.requestValue;
+import static github.axolotl.main.grammar.syntax.util.PolymorphismUtil.convertArg;
 import static github.axolotl.main.grammar.syntax.util.PolymorphismUtil.getFile;
 import static github.axolotl.main.grammar.util.LogUtil.log;
 
@@ -28,7 +29,6 @@ public class MethodService {
     public static final String SetVariable = "$setVariable";
     public static final String Foreach = "$Foreach";
     public static final String AddMethod = "$AddMethod";
-    public static final String Iterator = "$iterator";
     public static final String StringAppend = "append";
     private static final HashMap<String, MethodCallable> methods = new HashMap<>();
     private static final MethodCallable defaultMethod = new MethodCallable((n, p, v) -> {
@@ -117,6 +117,12 @@ public class MethodService {
             }
             return null;
         });
+        registerMethod("printf", (n, p, v) -> {
+            Object[] objects = Arrays.copyOfRange(v, 1, v.length);
+            String out = v[0].toString().formatted(objects);
+            System.out.println(out);
+            return null;
+        });
     }
 
     private static void regFileMethod() {
@@ -159,6 +165,12 @@ public class MethodService {
             }
             return builder.toString();
         });
+        registerMethod("iterator", (n, p, v) -> {
+            int start = Integer.parseInt(convertArg(v[0], String.class).toString());
+            int end = Integer.parseInt(convertArg(v[1], String.class).toString());
+            int iterator = Integer.parseInt(convertArg(v[2], "1", String.class).toString());
+            return IteratorUtil.intRange(start, end, iterator);
+        });
         registerMethod(AddMethod, (n, p, v) -> {
             String[] parms = Arrays.copyOfRange(p, 2, p.length);
             log("[MethodService]注册方法： %s(%s){%s}\n", p[0], Arrays.toString(parms), p[1]);
@@ -174,7 +186,7 @@ public class MethodService {
         });
         registerMethod(Foreach, (n, p, v) -> {
             String varName = p[0];
-            Object var = requestValue(varName);
+            Object var = v[0];
             List<String> tempVarList = new ArrayList<>();//Foreach中的临时变量
 
             List<String> sentences = InitParser.getCodeblocks_Sentence().get(p[1]);
@@ -183,6 +195,7 @@ public class MethodService {
                 case Object[] objects -> {
                     for (Object object : objects) {
                         addTempSubField("#" + varName, object, tempVarList);
+                        addTempSubField("#foreach", object, tempVarList);
                         analyseAndRun(sentences);//解析并运行一次循环体
                     }
                 }
@@ -196,11 +209,13 @@ public class MethodService {
                 case Collection<?> collection -> {
                     collection.forEach(object -> {
                         addTempSubField("#" + varName, object, tempVarList);
+                        addTempSubField("#foreach", object, tempVarList);
                         analyseAndRun(sentences);//解析并运行一次循环体
                     });
                 }
                 default -> {
                     addTempSubField("#" + varName, var, tempVarList);
+                    addTempSubField("#foreach", var, tempVarList);
                     analyseAndRun(sentences);//解析并运行一次循环体
                 }
             }
