@@ -31,7 +31,7 @@ public class MethodCallable {
 
     @SneakyThrows
     public Object call(String methodName, String... parametersName) {
-        Object[] variables = requestValue(parametersName);//刷新参数
+        Object[] variables = requestValue(parametersName);//解析参数
 //        System.out.printf("[%s]parametersName = %s\n", methodName, Arrays.toString(parametersName));
 //        System.out.printf("[%s]variables = %s\n", methodName, Arrays.toString(variables));
         return method.execute(methodName, parametersName, variables);

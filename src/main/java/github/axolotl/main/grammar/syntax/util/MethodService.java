@@ -18,9 +18,7 @@ import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
-import static github.axolotl.main.GlobalVariable.requestValue;
 import static github.axolotl.main.grammar.syntax.util.PolymorphismUtil.convertArg;
 import static github.axolotl.main.grammar.syntax.util.PolymorphismUtil.getFile;
 import static github.axolotl.main.grammar.util.LogUtil.log;
@@ -137,7 +135,7 @@ public class MethodService {
         registerMethod("expressionString", (n, p, v) -> expression(p, v).getStringValue());
     }
 
-    // 使用Guava Cache作为缓存，具备大小限制和过期策略
+    // 使用缓存 缓存已经创建好的公式
     private static final ConcurrentHashMap<String, Expression> EXPRESSION_CACHE = new ConcurrentHashMap<>(100);
     private static final ExpressionConfiguration defaultConfig = ExpressionConfiguration.builder().build();
 
@@ -152,11 +150,10 @@ public class MethodService {
         }
         Map<String, Object> values = new HashMap<>();
         for (int i = 1; i < v.length; i++) {
-//            values.put("var" + i, Double.parseDouble(v[i].toString()));
             Object var = v[i];
             switch (var) {
-                case Double value -> values.put("var" + i, var);
-                case Integer value -> values.put("var" + i, var);
+                case Double value -> values.put("var" + i, value);
+                case Integer value -> values.put("var" + i, value);
                 default -> values.put("var" + i, Double.parseDouble(var.toString()));
             }
         }
@@ -166,12 +163,8 @@ public class MethodService {
     }
 
     private static void regFileMethod() {
-        registerMethod("getFile", (n, p, v) -> {
-            return new File(String.valueOf(v[0]));
-        });
-        registerMethod("listFiles", (n, p, v) -> {
-            return ((File) v[0]).listFiles();
-        });
+        registerMethod("getFile", (n, p, v) -> new File(String.valueOf(v[0])));
+        registerMethod("listFiles", (n, p, v) -> ((File) v[0]).listFiles());
         registerMethod("moveFile", (n, p, v) -> {
             File oldfile = getFile(v[0]);
             File newfile = getFile(v[1]);

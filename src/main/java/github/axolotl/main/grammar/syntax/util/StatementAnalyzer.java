@@ -1,6 +1,5 @@
 package github.axolotl.main.grammar.syntax.util;
 
-import github.axolotl.main.GlobalVariable;
 import github.axolotl.main.grammar.util.AnalyzerMethodCache;
 import github.axolotl.main.grammar.util.AnalyzerSentenceCache;
 import github.axolotl.main.grammar.util.InitParser;
@@ -108,6 +107,7 @@ public class StatementAnalyzer {
             if (name.contains("(") && name.contains(")")) {
                 if (AnalyzerMethodCache.isCache(name)) {
                     var = AnalyzerMethodCache.executeCache(name);
+                    return var;
                 } else {//缓存一下这个方法
                     String methodName = name.substring(0, name.indexOf("("));
                     List<String> paramsList = getParamsList(name);
@@ -171,9 +171,8 @@ public class StatementAnalyzer {
         return requestValueForSyntax(text, true);
     }
 
-    public static List<Object> analyzeAndRun(List<String> sentences) {
+    public static void analyzeAndRun(List<String> sentences) {
         ArrayList<Object> returns = new ArrayList<>();
         sentences.stream().map(StatementAnalyzer::analyzeAndRun).forEach(returns::add);
-        return returns;
     }
 }
