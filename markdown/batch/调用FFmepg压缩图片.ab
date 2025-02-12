@@ -1,0 +1,12 @@
+inputFolder = getFile("G:\CreativeJava\2025_02\AxolotlBatch\test\output\截图");
+output = "G:\CreativeJava\2025_02\AxolotlBatch\test\output\导出\";
+
+listFiles(inputFolder) -> {
+    newFile = +(output,#foreach#name); //导出文件的路径
+    println(#foreach#path ," -> ",newFile);
+    exec = append("ffmpeg -hwaccel_output_format cuda -i #1" , #foreach#path , "#1 -codec libwebp -q 75 #1",output,#foreach#name,"#1");//执行的命令
+    println(exec);
+    result = exec(exec);
+    result->{println("result: ",result);println("out: ",#result#out);println("err: ",#result#err);println("exitcode: ",#result#exitcode);};
+    println("====================");
+};

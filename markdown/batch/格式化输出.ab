@@ -1,0 +1,4 @@
+a = "hello";
+print("Hello");       // 不换行输出
+println("World");     // 带换行输出
+printf("格式 %s#n", a); // 格式化输出 #n就是\n的转义 #t就是\t 其他同理

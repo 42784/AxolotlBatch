@@ -1,0 +1,7 @@
+
+listFiles(getFile("G:\CreativeJava\2025_02\AxolotlBatch\")) -> {
+    println(#foreach);
+    listFiles(#foreach) -> {
+        println("#t",#foreach#name);
+    };
+};

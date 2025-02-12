@@ -10,6 +10,7 @@ import dczx.axolotl.command.DefaultExecutor;
 import dczx.axolotl.util.FileUtil;
 import github.axolotl.main.GlobalVariable;
 import github.axolotl.main.grammar.util.InitParser;
+import lombok.Getter;
 
 
 import java.io.File;
@@ -35,6 +36,7 @@ public class MethodService {
     public static final String Foreach = "$Foreach";
     public static final String AddMethod = "$AddMethod";
     public static final String StringAppend = "append";
+    @Getter
     private static final HashMap<String, MethodCallable> methods = new HashMap<>();
     private static final MethodCallable defaultMethod = new MethodCallable((n, p, v) -> {
         System.err.println("未被定义的方法: " + n);
@@ -79,7 +81,7 @@ public class MethodService {
 
     private static void regExecMethod() {
         registerMethod("exec", (n, p, v) -> {
-            System.out.println("------>" + Arrays.toString((Object[]) v));
+//            System.out.println("------>" + Arrays.toString((Object[]) v));
             return defaultExecutor.runCommand(getExecPreFix() + v[0]);
         });
         registerMethod("execWithHome", (n, p, v) -> {
@@ -221,6 +223,7 @@ public class MethodService {
         registerMethod(Foreach, (n, p, v) -> {
             String varName = "#" + p[0];
             Object var = v[0];
+            if (var==null) {return "null";}
             List<String> sentences = InitParser.getCodeblocks_Sentence().get(p[1]);
             //由于临时变量的处理运行慢 所以不清空临时变量
             switch (var) {//已被转换为Var对象

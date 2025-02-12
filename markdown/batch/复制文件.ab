@@ -1,0 +1,9 @@
+inputFolder = getFile("./");
+output = "G:\CreativeJava\2025_02\AxolotlBatch\test\copyPut\";
+
+listFiles(inputFolder) -> {
+    newFile = append(output,#foreach#name); //导出文件的路径
+    println(#foreach#path ," -> ",newFile);
+    copyFile(#foreach#path,newFile);
+    println("===============================");
+};

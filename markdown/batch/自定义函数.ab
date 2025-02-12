@@ -1,0 +1,11 @@
+def a(name){
+    println("Hello: "+#name);
+};
+
+def hello(text){
+    a(#text);//#+参数名称 来获取传入的参数
+    #hello = "hi";//设置函数返回值 即为修改#+函数名 的这个变量
+};
+
+res = hello("AXM");//调用自定义函数 获取返回值
+printf("返回值: %s#n",res);

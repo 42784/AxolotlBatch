@@ -1,6 +1,7 @@
 package github.axolotl.main;
 
 
+import github.axolotl.main.grammar.syntax.util.MethodService;
 import github.axolotl.main.grammar.util.AnalyzerMethodCache;
 import github.axolotl.main.grammar.util.AnalyzerSentenceCache;
 import github.axolotl.main.grammar.util.ConfigUtil;
@@ -57,5 +58,6 @@ public class Main {
         InitParser.parse(code);
         log("[Cache]AnalyzerSentenceCache.cacheTable = " + AnalyzerSentenceCache.cacheTable);
         log("[Cache]AnalyzerMethodCache.cacheTable = " + AnalyzerMethodCache.cacheTable);
+        MethodService.getMethods().keySet().forEach(System.out::println);
     }
 }

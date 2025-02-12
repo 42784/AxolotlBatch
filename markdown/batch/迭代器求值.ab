@@ -1,0 +1,21 @@
+a = getTimeMillis();
+
+res1 = 0;
+res2 = 0;
+
+iterator(1,10000,1) -> {
+    res1 = expression("var1+var2",res1,#foreach);
+};
+
+list = iterator(1,10000,1);
+list -> {
+    res2 = expression("var1+var2",res2,#list);
+};
+
+println("累加结果1: ", res1);
+println("累加结果2: ", res2);
+
+b = getTimeMillis();
+printf("执行耗时: %s ms#n",
+    expression("var2 - var1",a,b)
+);

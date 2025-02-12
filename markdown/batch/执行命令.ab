@@ -1,0 +1,12 @@
+// 调用CMD.ab
+result = exec("java -version");  // 执行系统命令
+result->{
+  println("结果: ",result);
+  println("输出流: ",#result#out);
+  println("错误流: ",#result#err);
+  println("退出码: ",#result#exitcode);
+  println();
+  #result#out ->{println("#result#out: ",#foreach);};
+  #result#err ->{println("#result#err: ",#foreach);};
+
+};
