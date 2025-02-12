@@ -11,6 +11,7 @@ import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.Scanner;
 
 import static github.axolotl.main.grammar.util.LogUtil.log;
 
@@ -42,7 +43,14 @@ public class Main {
                         }
                     }
                 } else {
-                    System.err.println("请传入待运行的文件");
+                    System.out.print("没有识别到命令行参数，请输入源码文件路径: ");
+                    String s = new Scanner(System.in).nextLine();
+                    File file = new File(s);
+                    if (file.exists()) {
+                        try (FileInputStream fis = new FileInputStream(file)) {
+                            InitParser.parse(IOUtils.toString(fis));
+                        }
+                    }
                 }
             }
         }
