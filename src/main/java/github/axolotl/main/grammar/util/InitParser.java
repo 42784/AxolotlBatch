@@ -35,6 +35,9 @@ public class InitParser {
         codeblocks_Sentence.forEach( (key, block) -> {
             block.replaceAll(s -> s.replace(";", ""));//处理分号提早 防止重复处理
         });
+
+        //TODO [A] 分离执行和解析(载入)
+        //TODO [A] 允许载入外部方法和执行外部方法
         mainCodes.forEach(sentence -> {
             log("[InitParser]执行语句: %s", sentence);
             //由全部解析，修改为动态的解析执行

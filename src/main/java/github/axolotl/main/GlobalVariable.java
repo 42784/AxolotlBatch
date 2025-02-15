@@ -44,10 +44,12 @@ public class GlobalVariable {
 
     public static final String EXEC_PREFIX = "EXEC_PREFIX";
     public static final String EXEC_HOME = "EXEC_HOME";
+    public static final String MAX_Threads = "MAX_Threads";
 
     public static void initDefaultVariable() {
 //        addVariable(EXEC_PREFIX,"cmd /c ");
         addVariable(EXEC_PREFIX, "");
+        addVariable(MAX_Threads, 10);
         addVariable(EXEC_HOME, "./");
     }
 }

@@ -19,6 +19,8 @@ import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import static github.axolotl.main.grammar.syntax.util.PolymorphismUtil.convertArg;
 import static github.axolotl.main.grammar.syntax.util.PolymorphismUtil.getFile;
@@ -36,6 +38,14 @@ public class MethodService {
     public static final String Foreach = "$Foreach";
     public static final String AddMethod = "$AddMethod";
     public static final String StringAppend = "append";
+    //仅用于newThread 定长线程池
+    private static final ThreadPoolExecutor executorService = (ThreadPoolExecutor) Executors.newFixedThreadPool(
+            ValueUtil.getInt(
+                    GlobalVariable.requestValue(GlobalVariable.MAX_Threads)
+            ).orElse(1)
+    );
+
+
     @Getter
     private static final HashMap<String, MethodCallable> methods = new HashMap<>();
     private static final MethodCallable defaultMethod = new MethodCallable((n, p, v) -> {
@@ -128,6 +138,23 @@ public class MethodService {
             Object[] objects = Arrays.copyOfRange(v, 1, v.length);
             String out = v[0].toString().formatted(objects);
             System.out.println(out);
+            return null;
+        });
+        registerMethod("newThread", (n, p, v) -> {
+            List<String> sentences = InitParser.getCodeblocks_Sentence().get(p[0]);
+            executorService.submit(() -> StatementAnalyzer.analyzeAndRun(sentences));
+            return null;
+        });
+        registerMethod("sleep", (n, p, v) -> {
+            Thread.sleep(ValueUtil.getLong(v[0]).orElse(0));
+            return null;
+        });
+        registerMethod("update", (n, p, v) -> {
+            executorService.setCorePoolSize(
+                    ValueUtil.getInt(
+                            GlobalVariable.requestValue(GlobalVariable.MAX_Threads)
+                    ).orElse(1)
+            );
             return null;
         });
         registerMethod("expression", (n, p, v) -> expression(p, v).getStringValue());
@@ -223,7 +250,9 @@ public class MethodService {
         registerMethod(Foreach, (n, p, v) -> {
             String varName = "#" + p[0];
             Object var = v[0];
-            if (var==null) {return "null";}
+            if (var == null) {
+                return "null";
+            }
             List<String> sentences = InitParser.getCodeblocks_Sentence().get(p[1]);
             //由于临时变量的处理运行慢 所以不清空临时变量
             switch (var) {//已被转换为Var对象

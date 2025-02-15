@@ -1,0 +1,7 @@
+println("A");
+newThread({
+    newThread({sleep(200);println("newThread wakeup2");});
+    sleep(100);
+    println("newThread wakeup1");
+});
+println("B");
